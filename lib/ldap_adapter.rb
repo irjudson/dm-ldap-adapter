@@ -32,7 +32,7 @@ module DataMapper
       #
       # @api semipublic
       def create(resources)
-#        raise NotImplementedError
+        raise NotImplementedError
 
         created = 0
 
@@ -88,7 +88,7 @@ module DataMapper
       #
       # @api semipublic
       def update(attributes, query)
-#        raise NotImplementedError
+        raise NotImplementedError
 
         updated = 0
 
