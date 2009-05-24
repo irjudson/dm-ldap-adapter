@@ -1,0 +1,13 @@
+History.txt
+LICENSE
+Manifest.txt
+README.txt
+Rakefile
+TODO
+lib/ldap_adapter.rb
+lib/ldap_adapter/version.rb
+spec/integration/ldap_adapter_spec.rb
+spec/spec.opts
+spec/spec_helper.rb
+tasks/install.rb
+tasks/spec.rb
