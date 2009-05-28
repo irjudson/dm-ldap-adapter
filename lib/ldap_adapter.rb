@@ -2,8 +2,6 @@ gem 'dm-core', '~> 0.9.10'
 require 'dm-core'
 require 'net/ldap'
 
-$fake = true
-
 module DataMapper
   module Adapters
     # The documentation for this adapter was taken from
@@ -32,14 +30,13 @@ module DataMapper
       #
       # @api semipublic
       def create(resources)
-        raise NotImplementedError
 
         created = 0
-
         resources.each do |resource|
           # Convert resources into LDAP (which just takes a hash!)
-          ldap_obj = resource.attributes(:field)
-          dn = ldap_obj["distinquishedName"] || ldap_obj["dn"]
+          ldap_obj = convert_resource_to_hash(resource)
+          dn = resource.make_dn
+          ldap_obj[:objectclass] = resource.objectclass
 
           if ldap_obj.nil? || dn.nil?
             puts "Problem converting resource to hash for LdapAdapter"
@@ -48,22 +45,18 @@ module DataMapper
 
           # Call LDAP create
           begin
-            if $fake
-              puts "I would have called:"
-              puts "\tresult = @ldap.add(:dn => dn, :attributes => ldap_obj)"
-              result = 1
-            else
-              result = @ldap.add(:dn => dn, :attributes => ldap_obj)
-            end
-          rescue LdapError => e
+            @ldap.add(:dn => dn, :attributes => ldap_obj)
+          rescue Net::LDAP::LdapError => e
             puts "There was an error adding the ldap object: ", e
-            puts " => #{LDAP.ResultStrings[result]}"
+            puts " => #{@ldap.get_operation_result.message}"
             return -1
           end
 
           # Accumulate successful create calls to return
-          if result == 0
+          if @ldap.get_operation_result.code == 0
             created = created + 1
+          else
+            puts "LDAP Add Error: #{@ldap.get_operation_result.message}"
           end
         end
 
@@ -88,8 +81,6 @@ module DataMapper
       #
       # @api semipublic
       def update(attributes, query)
-        raise NotImplementedError
-
         updated = 0
 
         # Convert query conditions to ldap filter
@@ -100,32 +91,23 @@ module DataMapper
 
         # Process updates (being careful to distinguish between add and update
         entries.each do |entry|
-          existing = entry.attribute_names
+          existing = entry.attribute_names.map { |a| a.to_s }
           attributes.each do |attribute, value|
+            property = attribute.field.to_s
 
-            if existing.include?(attribute)
-              if $fake
-                puts "I would have called:"
-                puts "\tresult = @ldap.replace_attribute(dn, attribute, value)"
-                result = true
-              else
-                result = @ldap.replace_attribute(dn, attribute, value)
-              end
+            ops = []
+            if existing.include?(property)
+              ops << [:replace, attribute.field.to_sym, value]
             else
-              if $fake
-                puts "I would have called:"
-                puts "\tresult = @ldap.add_attribute(dn, attribute, value)"
-                result = true
-              else
-                result = @ldap.add_attribute(dn, attribute, value)
-              end
+              ops << [:add, attribute.field.to_sym, value]
             end
 
-            if result
+            @ldap.modify(:dn => entry.dn, :operations => ops)
+
+            if @ldap.get_operation_result.code == 0
               updated = updated + 1
             else
-              puts "Result: #{@ldap.get_operation_result.code}"
-              puts "Message: #{@ldap.get_operation_result.message}"
+              puts "LDAP Modify Error: #{@ldap.get_operation_result.message}"
             end
           end
         end
@@ -199,7 +181,6 @@ module DataMapper
       #
       # @api semipublic
       def delete(query)
-        raise NotImplementedError
 
         deleted = 0
 
@@ -211,19 +192,12 @@ module DataMapper
 
         # Call LDAP Delete
         entries.each do |entry|
-          if $fake
-            puts "I would have called:"
-            puts "\tresult = @ldap.delete(:dn => entry.dn)"
-            result = true
-          else
-            result = @ldap.delete(:dn => entry.dn)
-          end
+          result = @ldap.delete(:dn => entry.dn)
 
-          if result
+          if @ldap.get_operation_result.code == 0
             deleted = deleted + 1
           else
-              puts "Result: #{@ldap.get_operation_result.code}"
-              puts "Message: #{@ldap.get_operation_result.message}"
+            puts "LDAP Delete Error: #{@ldap.get_operation_result.message}"
           end
         end
 
@@ -316,6 +290,14 @@ module DataMapper
           puts "Result: #{@ldap.get_operation_result.code}"
           puts "Message: #{@ldap.get_operation_result.message}"
         end
+      end
+
+      def convert_resource_to_hash(resource)
+        result = Hash.new
+        resource.send(:properties).each do |p|
+          result[p.field.to_sym] = p.get!(resource) unless p.get!(resource).nil?
+        end
+        result
       end
 
       def convert_conditions(conditions)
