@@ -95,6 +95,8 @@ puts "Result: #{result}"
 
 == TODO:
 
+- Figure out a good testing strategy, get standard adapter tests in place
+
 - Finish query implementation (limit, order, etc)
 
 - Consider making pre-mapped resources corresponding to the most
@@ -102,3 +104,4 @@ puts "Result: #{result}"
   duplication of effort for each application.
 
 - Documentation clean up
+
