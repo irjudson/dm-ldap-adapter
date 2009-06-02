@@ -1,5 +1,3 @@
-:include:QUICKLINKS
-
 = dm-ldap-adapter
 
 A DataMapper adapter for Lightweight Directory Access Protocol (LDAP) servers.
