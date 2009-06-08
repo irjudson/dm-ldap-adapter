@@ -13,7 +13,7 @@ require ROOT + 'lib/ldap_adapter/version'
 GEM_NAME    = 'dm-ldap-adapter'
 GEM_VERSION = DataMapper::LdapAdapter::VERSION
 
-Hoe.new(GEM_NAME, GEM_VERSION) do |p|
+Hoe.spec(GEM_NAME) do |p|
   p.developer('Ivan R. Judson', 'ivan.judson [a] montana [d] edu')
 
   p.description = 'A DataMapper Adapter for LDAP.'

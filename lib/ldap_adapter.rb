@@ -1,4 +1,3 @@
-gem 'dm-core', '~> 0.9.10'
 require 'dm-core'
 require 'net/ldap'
 
@@ -229,58 +228,64 @@ module DataMapper
           @identity_maps = {}
         end
 
+        @options = Hash.new
+
         # Let's play with Options
-        @options = {
-          :attributes => nil,
-          :scope => Net::LDAP::SearchScope_WholeSubtree,
-          :filter => nil,
-          :auth => { :method => :simple }
-        }
+        @options[:attributes] = nil
+        @options[:scope] = Net::LDAP::SearchScope_WholeSubtree
+        @options[:filter] = nil
+        @options[:auth] = { :method => :simple }
 
-        if uri_or_options.is_a?(String)
-          begin
-            opt_array = URI.split(uri_or_options)
-            @options[:scheme] = opt_array[0]
-            @options[:auth][:username],@options[:auth][:password] = opt_array[1].split(':')
-            @options[:host] = opt_array[2]
-            @options[:port] = opt_array[3]
-
-            # Registry from URI not used
-            # @options[:registry] = opt_array[4]
-
-            @options[:base] = opt_array[5]
-
-            # Opaque from URI not used
-            # @options[:opaque] = opt_array[6]
-
-            # This is where the rest of the string is kept
-            # According to the LDAP url spec it should look like
-            # ?attributes?scope?filter, e.g.
-            # ?uid?sub?(uid=username), however
-            # URI strip appears to lose the first ?
-            # So we parse it all out
-            @options[:attributes],@options[:scope],@options[:filter] = opt_array[7].split('?')
-            @options[:fragment] = opt_array[8]
-          rescue InvalidURIError => e
-            puts "Error parsing options for ldap adapter"
-          end
-        else
-          @options.merge!(uri_or_options.dup)
-
-          @options[:auth][:username] = @options[:username]
-          @options[:auth][:password] = @options[:password]
-
-          @options.delete(:adapter)
-          @options.delete(:username)
-          @options.delete(:password)
-          @options.delete(:attributes)
-          @options.delete(:filter)
+        uri_or_options.each do |k,v|
+          @options[k] = v
         end
+
+#         if uri_or_options.is_a?(String)
+#           begin
+#             opt_array = URI.split(uri_or_options)
+#             @options[:scheme] = opt_array[0]
+#             @options[:auth][:username],@options[:auth][:password] = opt_array[1].split(':')
+#             @options[:host] = opt_array[2]
+#             @options[:port] = opt_array[3]
+
+#             # Registry from URI not used
+#             # @options[:registry] = opt_array[4]
+
+#             @options[:base] = opt_array[5]
+
+#             # Opaque from URI not used
+#             # @options[:opaque] = opt_array[6]
+
+#             # This is where the rest of the string is kept
+#             # According to the LDAP url spec it should look like
+#             # ?attributes?scope?filter, e.g.
+#             # ?uid?sub?(uid=username), however
+#             # URI strip appears to lose the first ?
+#             # So we parse it all out
+#             @options[:attributes],@options[:scope],@options[:filter] = opt_array[7].split('?')
+#             @options[:fragment] = opt_array[8]
+#           rescue InvalidURIError => e
+#             puts "Error parsing options for ldap adapter"
+#           end
+#         else
+#           @options.merge!(uri_or_options.dup)
+
+#           @options[:auth][:username] = @options[:username]
+#           @options[:auth][:password] = @options[:password]
+
+#           @options.delete(:adapter)
+#           @options.delete(:username)
+#           @options.delete(:password)
+#           @options.delete(:attributes)
+#           @options.delete(:filter)
+#         end
 
         # Deal with SSL stuff
         if @options[:scheme] == "ldaps" || @options[:port] == "636"
           @options[:encryption] = { :method => :simple_tls }
         end
+
+        puts "Options: #{@options.inspect}"
 
         # Create the new LDAP client stub
         @ldap = Net::LDAP.new(@options)
